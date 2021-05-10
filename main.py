@@ -1,4 +1,5 @@
 import folium
+from folium.plugins import MarkerCluster
 import pandas as pd
 import geopandas as gpd
 from geopy.geocoders import Nominatim
@@ -7,6 +8,12 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+def create_popup(row, columns=list):
+    popup = ''
+    for col, item in zip(columns[:-1], row):
+        popup = popup + rf"<b>{str(col).title()}</b><br>{str(item).title()}<br>"
+    return folium.Popup(popup, min_width=100, max_width=100)
 
 if __name__ == '__main__':
     client = Socrata("data.cityofnewyork.us",
@@ -23,17 +30,28 @@ if __name__ == '__main__':
 
     doe_art = doe_art.merge(doe_locations, left_on='bldgid', right_on='LOC_CODE')
     doe_art['artwork_year'] = doe_art['artwork_year'].apply(lambda x: str(x)[:4])
-    # print(doe_art.loc[0])
-    doe_art_json = gpd.GeoDataFrame(doe_art).to_crs(epsg=4326).to_json()
-    # doe_art.plot()
-    # plt.show()
+    doe_art_titles_media = doe_art.groupby('artwork_title')['medium'].apply(list)
+    doe_art_titles_media = doe_art_titles_media.apply(lambda x: ", ".join(map(str, x)))
+    doe_art = doe_art.drop_duplicates(subset=['artwork_title'])
+    doe_art = doe_art.merge(doe_art_titles_media, on='artwork_title', how='outer')
+    doe_art['Artist Name'] = doe_art['artist_firstname'] + " " + doe_art['artist_lastname']
+    doe_art = doe_art[['artwork_title', 'Artist Name', 'medium_y', 'artwork_year', 'school_name', 'geometry']]
+    doe_art.columns = ['Artwork Title', 'Artist Name', 'Media', 'Year', 'School Name', 'geometry']
+    doe_art = gpd.GeoDataFrame(doe_art).to_crs(epsg=4326)
+    for col, item in zip(doe_art.columns, doe_art.loc[0]):
+        print(col, item)
+    doe_art_json = doe_art.to_json()
 
-    geolocator = Nominatim(user_agent='ArtInDOEBuildings')
-    loc = geolocator.geocode("New York, NY").raw
 
     # Create the map
+    geolocator = Nominatim(user_agent='ArtInDOEBuildings')
+    loc = geolocator.geocode("New York, NY").raw
     my_map = folium.Map(location=[loc['lat'], loc['lon']], zoom_start=10, control_scale=True)
-    itm_txt = "Art in DOE Buildings test text"
+    marker_cluster = MarkerCluster().add_to(my_map)
+    for idx, row in doe_art.iterrows():
+        folium.Marker(location=[row.geometry.y, row.geometry.x], popup=create_popup(row, doe_art.columns)).add_to(marker_cluster)
+
+
     legend_html = """
          <style>
             #div-to-toggle{
@@ -42,7 +60,7 @@ if __name__ == '__main__':
                 border: 1px solid Black;
                 padding: 15px 15px 15px 15px;
                 margin: 20px auto;
-                width: 30%;
+                width: 50vh;
                 background: #fff;
                 overflow: visible;
                 box-shadow: 3px 3px 8px #555;
@@ -63,7 +81,7 @@ if __name__ == '__main__':
                 cursor: pointer;
             }
             .btn-container{
-                width: 300px;
+                width: 30vh;
                 margin: 10px auto;
                 text-align: center;
                 clear: both;
@@ -72,29 +90,23 @@ if __name__ == '__main__':
                 height: 35px;
             }
         </style>
-<div id="div-to-toggle">
-    <button id="close-btn">X</button> 
-    <h1>Art in DOE Buildings</h1>
-    <p>Artwork data is sourced from <a href="https://data.cityofnewyork.us/Education/Art-in-DOE-buildings/8a4n-zmpj">Art in DOE Buildings on NYC Open Data</a>.
-    <br>
-    School location data is sourced from <a href="https://data.cityofnewyork.us/Education/School-Point-Locations/jfju-ynrr">School Point Locations on NYC Open Data</a>.
-    
-    </p>
-</div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script>
-    $('body, #close-btn').click(function() {
-        $('#div-to-toggle').hide();
-        event.stopPropagation();
-    })
-</script>"""
+        <div id="div-to-toggle">
+            <button id="close-btn">X</button> 
+            <h1>Art in DOE Buildings</h1>
+            <p>Artwork data is sourced from <a href="https://data.cityofnewyork.us/Education/Art-in-DOE-buildings/8a4n-zmpj">Art in DOE Buildings on NYC Open Data</a>.
+            <br>
+            School location data is sourced from <a href="https://data.cityofnewyork.us/Education/School-Point-Locations/jfju-ynrr">School Point Locations on NYC Open Data</a>.
+            
+            </p>
+        </div>
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script>
+            $('body, #close-btn').click(function() {
+                $('#div-to-toggle').hide();
+                event.stopPropagation();
+            })
+        </script>"""
     my_map.get_root().html.add_child(folium.Element(legend_html))
-    popups = folium.features.GeoJsonPopup(fields=['artwork_title', 'artist_firstname', 'artist_lastname',
-                                                  'artwork_year', 'medium', 'school_name', ],
-                                          aliases=['Artwork Title', 'Artist First Name', 'Artist Last Name',
-                                                   'Year', 'Medium', 'School', ])
 
-    points = folium.features.GeoJson(doe_art_json, popup=popups)  # .add_to(my_map)
-    points.add_to(my_map)
-    # Display the map
+
     my_map.save('DOEArt.html')
