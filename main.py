@@ -60,7 +60,7 @@ if __name__ == '__main__':
                 border: 1px solid Black;
                 padding: 15px 15px 15px 15px;
                 margin: 20px auto;
-                width: 50vh;
+                width: 90vw;
                 background: #fff;
                 overflow: visible;
                 box-shadow: 3px 3px 8px #555;
