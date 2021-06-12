@@ -114,7 +114,7 @@ if __name__ == '__main__':
             <br>
             School location data is sourced from <a href="https://data.cityofnewyork.us/Education/School-Point-Locations/jfju-ynrr">School Point Locations on NYC Open Data</a>.
             <br>
-            Images of artwork were lovingly scraped from <a href="http://www.nycsca.org/Community/Public-Art-for-Public-Schools/Collection">the School Construction Authority</a>
+            Images of artwork were lovingly scraped from <a href="http://www.nycsca.org/Community/Public-Art-for-Public-Schools/Collection">the School Construction Authority</a>.
             </p>
             Created by <a href="https://talzaken.pythonanywhere.com" target="_blank">Tal Zaken</a>
         </div>
