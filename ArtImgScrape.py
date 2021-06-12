@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-
+import urllib
 
 def scrape_art():
     """Combs through the NYC School Construction Authority website, and gathers links for images of artwork in schools.
@@ -20,12 +20,14 @@ def scrape_art():
             title = info_summary[0].p.i.getText().strip().upper()
             school = str(info_summary[0].p).split("<br/>")[-3].strip().upper()
             borough = info.findChildren("div", {"class": "item_category"}, recursive=False)[0].a.getText().upper()
-            photo_link = "<img src='http://www.nycsca.org" + photo.findChildren('a', recursive=False)[0].img['src'] + "'>"
+            photo_link = 'http://www.nycsca.org' + photo.findChildren('a', recursive=False)[0].img['src']
+            urllib.request.urlretrieve(photo_link, f"ArtImages/{artist}_{title}.jpg")
+            photo_tag = f"<img src='/static/maps/ArtImages/{artist}_{title}.jpg'/>"
             count += 1
             print(count)
-            print(artist, borough, school, title, photo_link, sep='\n')
+            print(artist, borough, school, title, photo_tag, sep='\n')
             art_links_df = art_links_df.append(
-                {'artist': artist, 'borough': borough, 'school': school, 'title': title, 'image': photo_link},
+                {'artist': artist, 'borough': borough, 'school': school, 'title': title, 'image': photo_tag},
                 ignore_index=True)
     return art_links_df
 

@@ -17,7 +17,7 @@ def create_popup(row, columns=list):
     popup = ''
     for col, item in zip(columns, row):
         if col not in ['geometry', 'title']:
-            popup = popup + rf"<b>{str(col).title()}</b><br>{str(item).title()}<br>"
+            popup = popup + rf"<b>{str(col).title()}</b><br>{str(item)}<br>"
     return folium.Popup(popup, min_width=350, max_width=350)
 
 
